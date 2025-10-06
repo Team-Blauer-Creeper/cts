@@ -1,51 +1,48 @@
 #!/bin/bash
 # ==========================================
-# CT Command Tool (mit Auto-Start)
+# Installer.sh - Team-Blauer-Creeper
+# Installiert alle Pakete aus pkg/ und fügt ct delsystem hinzu
 # ==========================================
 
 BIN_DIR="$PREFIX/bin"
-PKG_DIR="$HOME/pkg"
-mkdir -p "$BIN_DIR"
-mkdir -p "$PKG_DIR"
+PKG_DIR="$PWD/pkg"
 
-# ct Script
+echo "🛠 Installer startet..."
+
+mkdir -p "$BIN_DIR"
+
+# ------------------------
+# Alle Pakete im pkg-Ordner installieren
+# ------------------------
+for file in "$PKG_DIR"/*.sh; do
+    [ -e "$file" ] || continue
+    name=$(basename "$file" .sh)
+    echo "📦 Installiere $name..."
+    cp "$file" "$BIN_DIR/$name"
+    chmod +x "$BIN_DIR/$name"
+    echo "✅ $name installiert!"
+    echo "🚀 Starte $name..."
+    bash "$BIN_DIR/$name"
+done
+
+# ------------------------
+# CT-Befehl installieren
+# ------------------------
 CT_CMD="$BIN_DIR/ct"
 cat <<'EOF' > "$CT_CMD"
 #!/bin/bash
-PKG_DIR="$HOME/pkg"
-
 case "$1" in
-    install)
-        name="$2"
-        if [ -z "$name" ]; then
-            echo "Fehler: Kein Projektname angegeben."
-            exit 1
-        fi
-        echo "📦 Lade $name herunter..."
-        URL="https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/$name.sh"
-        mkdir -p "$PKG_DIR/$name"
-        wget -q "$URL" -O "$PKG_DIR/$name/$name.sh"
-        chmod +x "$PKG_DIR/$name/$name.sh"
-        echo "✅ $name installiert!"
-        echo "🚀 Starte $name..."
-        bash "$PKG_DIR/$name/$name.sh"  # Auto-Start
-        ;;
-    create)
-        name="$2"
-        if [ -z "$name" ]; then
-            echo "Fehler: Kein Projektname angegeben."
-            exit 1
-        fi
-        mkdir -p "$PKG_DIR/$name"
-        echo "📝 Öffne Editor für $name (STRG+X zum Speichern & Beenden)..."
-        nano "$PKG_DIR/$name/$name.sh"
-        echo "✅ $name gespeichert!"
+    delsystem)
+        echo "⚠️ CT wird gelöscht..."
+        rm -f "$PREFIX/bin/ct"
+        echo "✅ CT gelöscht!"
         ;;
     *)
-        echo "Verwendung: ct install <projekt> | ct create <projekt>"
+        echo "Verwendung: ct delsystem"
         ;;
 esac
 EOF
-
 chmod +x "$CT_CMD"
-echo "✅ CT-Befehl installiert! Verwende 'ct install <projekt>' oder 'ct create <projekt>'."
+echo "✅ CT-Befehl installiert! Verwende 'ct delsystem', um CT zu entfernen."
+
+echo "✅ Alle Pakete installiert und CT eingerichtet!"
