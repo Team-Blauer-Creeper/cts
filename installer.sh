@@ -1,7 +1,10 @@
 #!/bin/bash
 REPO="https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/pkg"
 PKG_DIR="$HOME/ct/pkg"
-LOCAL_GIT="$HOME/cts"  # Lokaler GitHub-Ordner
+LOCAL_GIT="$HOME/cts"
+
+# Verzeichnisse sicherstellen
+mkdir -p "$PKG_DIR"
 
 case "$1" in
   install)
@@ -12,20 +15,20 @@ case "$1" in
     pkg="$2"
     localfile="$PKG_DIR/$pkg.sh"
 
-    # Prüfe ob wget installiert ist
+    # wget prüfen
     if ! command -v wget &> /dev/null; then
-      echo "🌐 wget wird installiert..."
-      pkg install wget -y
+      echo "🌐 Installiere wget..."
+      pkg install wget -y >/dev/null
     fi
 
-    # Paket installieren
+    # Paket holen
     if [ -f "$localfile" ]; then
       echo "📦 Paket '$pkg' ist bereits lokal vorhanden. Starte..."
       bash "$localfile"
     else
       echo "🌍 Lade '$pkg' von GitHub herunter..."
       wget -q -O "$localfile" "$REPO/$pkg.sh"
-      if [ $? -eq 0 ]; then
+      if [ -s "$localfile" ]; then
         chmod +x "$localfile"
         echo "✅ Paket '$pkg' installiert!"
         bash "$localfile"
@@ -54,17 +57,16 @@ case "$1" in
 
     echo "✅ Neues Paket '$name' wurde erstellt!"
 
-    # === Automatisch in Git pushen ===
+    # In Git pushen (wenn Repo da ist)
     if [ -d "$LOCAL_GIT/.git" ]; then
       cp "$file" "$LOCAL_GIT/pkg/"
       cd "$LOCAL_GIT"
       git add "pkg/$name.sh"
-      git commit -m "Added package $name"
-      git push
+      git commit -m "Added package $name" >/dev/null
+      git push >/dev/null 2>&1 && echo "📤 Paket '$name' wurde auf GitHub hochgeladen!"
       cd ~
-      echo "📤 Paket '$name' wurde auf GitHub hochgeladen!"
     else
-      echo "⚠️ Kein Git-Repo unter $LOCAL_GIT gefunden — bitte klonen!"
+      echo "⚠️ Kein Git-Repo unter $LOCAL_GIT gefunden!"
     fi
     ;;
 
