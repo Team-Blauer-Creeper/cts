@@ -1,48 +1,74 @@
 #!/bin/bash
-# ==========================================
-# Installer.sh - Team-Blauer-Creeper
-# Installiert alle Pakete aus pkg/ und fügt ct delsystem hinzu
-# ==========================================
+echo "🧩 Starte Installation des CT-Systems..."
 
-BIN_DIR="$PREFIX/bin"
-PKG_DIR="$PWD/pkg"
+# === Basisverzeichnis anlegen ===
+mkdir -p $HOME/ct/pkg
 
-echo "🛠 Installer startet..."
-
-mkdir -p "$BIN_DIR"
-
-# ------------------------
-# Alle Pakete im pkg-Ordner installieren
-# ------------------------
-for file in "$PKG_DIR"/*.sh; do
-    [ -e "$file" ] || continue
-    name=$(basename "$file" .sh)
-    echo "📦 Installiere $name..."
-    cp "$file" "$BIN_DIR/$name"
-    chmod +x "$BIN_DIR/$name"
-    echo "✅ $name installiert!"
-    echo "🚀 Starte $name..."
-    bash "$BIN_DIR/$name"
-done
-
-# ------------------------
-# CT-Befehl installieren
-# ------------------------
-CT_CMD="$BIN_DIR/ct"
-cat <<'EOF' > "$CT_CMD"
+# === ct-Befehl erstellen ===
+cat << 'EOF' > $PREFIX/bin/ct
 #!/bin/bash
+REPO="https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/pkg"
+PKG_DIR="$HOME/ct/pkg"
+
 case "$1" in
-    delsystem)
-        echo "⚠️ CT wird gelöscht..."
-        rm -f "$PREFIX/bin/ct"
-        echo "✅ CT gelöscht!"
-        ;;
-    *)
-        echo "Verwendung: ct delsystem"
-        ;;
+  install)
+    if [ -z "$2" ]; then
+      echo "❗ Nutzung: ct install <paket>"
+      exit 1
+    fi
+    pkg="$2"
+    localfile="$PKG_DIR/$pkg.sh"
+
+    # Prüfe ob wget installiert ist
+    if ! command -v wget &> /dev/null; then
+      echo "🌐 wget wird installiert..."
+      pkg install wget -y
+    fi
+
+    # Paket installieren
+    if [ -f "$localfile" ]; then
+      echo "📦 Paket '$pkg' ist bereits lokal vorhanden. Starte..."
+      bash "$localfile"
+    else
+      echo "🌍 Lade '$pkg' von GitHub herunter..."
+      wget -q -O "$localfile" "$REPO/$pkg.sh"
+      if [ $? -eq 0 ]; then
+        chmod +x "$localfile"
+        echo "✅ Paket '$pkg' installiert!"
+        bash "$localfile"
+      else
+        echo "❌ Fehler beim Herunterladen!"
+        rm -f "$localfile"
+      fi
+    fi
+    ;;
+
+  create)
+    read -p "🔧 Name des neuen Pakets: " name
+    file="$PKG_DIR/$name.sh"
+    echo "#!/bin/bash" > "$file"
+    echo "echo 'Paket \$name läuft!'" >> "$file"
+    chmod +x "$file"
+    echo "✅ Neues Paket '$name' erstellt!"
+    ;;
+
+  delsystem)
+    echo "⚠️  Lösche CT-System..."
+    rm -rf "$HOME/ct"
+    rm -f "$PREFIX/bin/ct"
+    echo "✅ CT-System gelöscht."
+    ;;
+
+  *)
+    echo "🧩 CT-System Befehle:"
+    echo "  ct install <paket>   - Installiert und startet Paket"
+    echo "  ct create            - Erstellt neues Paket"
+    echo "  ct delsystem         - Löscht CT-System"
+    ;;
 esac
 EOF
-chmod +x "$CT_CMD"
-echo "✅ CT-Befehl installiert! Verwende 'ct delsystem', um CT zu entfernen."
 
-echo "✅ Alle Pakete installiert und CT eingerichtet!"
+chmod +x $PREFIX/bin/ct
+
+echo "✅ Installation abgeschlossen!"
+echo "➡️  Du kannst jetzt 'ct install <paket>' nutzen."
