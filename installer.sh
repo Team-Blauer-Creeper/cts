@@ -1,14 +1,7 @@
 #!/bin/bash
-echo "🧩 Starte Installation des CT-Systems..."
-
-# === Basisverzeichnis anlegen ===
-mkdir -p $HOME/ct/pkg
-
-# === ct-Befehl erstellen ===
-cat << 'EOF' > $PREFIX/bin/ct
-#!/bin/bash
 REPO="https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/pkg"
 PKG_DIR="$HOME/ct/pkg"
+LOCAL_GIT="$HOME/cts"  # Lokaler GitHub-Ordner
 
 case "$1" in
   install)
@@ -47,9 +40,32 @@ case "$1" in
     read -p "🔧 Name des neuen Pakets: " name
     file="$PKG_DIR/$name.sh"
     echo "#!/bin/bash" > "$file"
-    echo "echo 'Paket \$name läuft!'" >> "$file"
+    echo "echo 'Paket $name läuft!'" >> "$file"
     chmod +x "$file"
-    echo "✅ Neues Paket '$name' erstellt!"
+
+    # Editor öffnen
+    if command -v nano &> /dev/null; then
+      nano "$file"
+    elif command -v vi &> /dev/null; then
+      vi "$file"
+    else
+      echo "⚠️ Kein Editor gefunden!"
+    fi
+
+    echo "✅ Neues Paket '$name' wurde erstellt!"
+
+    # === Automatisch in Git pushen ===
+    if [ -d "$LOCAL_GIT/.git" ]; then
+      cp "$file" "$LOCAL_GIT/pkg/"
+      cd "$LOCAL_GIT"
+      git add "pkg/$name.sh"
+      git commit -m "Added package $name"
+      git push
+      cd ~
+      echo "📤 Paket '$name' wurde auf GitHub hochgeladen!"
+    else
+      echo "⚠️ Kein Git-Repo unter $LOCAL_GIT gefunden — bitte klonen!"
+    fi
     ;;
 
   delsystem)
@@ -62,13 +78,7 @@ case "$1" in
   *)
     echo "🧩 CT-System Befehle:"
     echo "  ct install <paket>   - Installiert und startet Paket"
-    echo "  ct create            - Erstellt neues Paket"
+    echo "  ct create            - Erstellt & lädt neues Paket hoch"
     echo "  ct delsystem         - Löscht CT-System"
     ;;
 esac
-EOF
-
-chmod +x $PREFIX/bin/ct
-
-echo "✅ Installation abgeschlossen!"
-echo "➡️  Du kannst jetzt 'ct install <paket>' nutzen."
