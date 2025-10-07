@@ -1,86 +1,34 @@
 #!/bin/bash
-REPO="https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/pkg"
-PKG_DIR="$HOME/ct/pkg"
-LOCAL_GIT="$HOME/cts"
+echo "🚀 Installiere CT-System..."
 
-# Verzeichnisse sicherstellen
-mkdir -p "$PKG_DIR"
+# Stelle sicher, dass wget da ist
+if ! command -v wget &> /dev/null; then
+  echo "🌐 Installiere wget..."
+  pkg install wget -y
+fi
 
-case "$1" in
-  install)
-    if [ -z "$2" ]; then
-      echo "❗ Nutzung: ct install <paket>"
-      exit 1
-    fi
-    pkg="$2"
-    localfile="$PKG_DIR/$pkg.sh"
+# Verzeichnisse erstellen
+mkdir -p $HOME/ct/pkg
 
-    # wget prüfen
-    if ! command -v wget &> /dev/null; then
-      echo "🌐 Installiere wget..."
-      pkg install wget -y >/dev/null
-    fi
+# Hauptdatei ct.sh laden
+echo "📥 Lade ct.sh herunter..."
+wget -q -O $HOME/ct/ct.sh https://raw.githubusercontent.com/Team-Blauer-Creeper/cts/main/ct.sh
 
-    # Paket holen
-    if [ -f "$localfile" ]; then
-      echo "📦 Paket '$pkg' ist bereits lokal vorhanden. Starte..."
-      bash "$localfile"
-    else
-      echo "🌍 Lade '$pkg' von GitHub herunter..."
-      wget -q -O "$localfile" "$REPO/$pkg.sh"
-      if [ -s "$localfile" ]; then
-        chmod +x "$localfile"
-        echo "✅ Paket '$pkg' installiert!"
-        bash "$localfile"
-      else
-        echo "❌ Fehler beim Herunterladen!"
-        rm -f "$localfile"
-      fi
-    fi
-    ;;
+# Falls Download fehlgeschlagen
+if [ ! -s "$HOME/ct/ct.sh" ]; then
+  echo "❌ Download von ct.sh fehlgeschlagen!"
+  exit 1
+fi
 
-  create)
-    read -p "🔧 Name des neuen Pakets: " name
-    file="$PKG_DIR/$name.sh"
-    echo "#!/bin/bash" > "$file"
-    echo "echo 'Paket $name läuft!'" >> "$file"
-    chmod +x "$file"
+chmod +x $HOME/ct/ct.sh
 
-    # Editor öffnen
-    if command -v nano &> /dev/null; then
-      nano "$file"
-    elif command -v vi &> /dev/null; then
-      vi "$file"
-    else
-      echo "⚠️ Kein Editor gefunden!"
-    fi
+# Symbolischen Link im Bin-Verzeichnis erstellen
+ln -sf $HOME/ct/ct.sh $PREFIX/bin/ct
 
-    echo "✅ Neues Paket '$name' wurde erstellt!"
-
-    # In Git pushen (wenn Repo da ist)
-    if [ -d "$LOCAL_GIT/.git" ]; then
-      cp "$file" "$LOCAL_GIT/pkg/"
-      cd "$LOCAL_GIT"
-      git add "pkg/$name.sh"
-      git commit -m "Added package $name" >/dev/null
-      git push >/dev/null 2>&1 && echo "📤 Paket '$name' wurde auf GitHub hochgeladen!"
-      cd ~
-    else
-      echo "⚠️ Kein Git-Repo unter $LOCAL_GIT gefunden!"
-    fi
-    ;;
-
-  delsystem)
-    echo "⚠️  Lösche CT-System..."
-    rm -rf "$HOME/ct"
-    rm -f "$PREFIX/bin/ct"
-    echo "✅ CT-System gelöscht."
-    ;;
-
-  *)
-    echo "🧩 CT-System Befehle:"
-    echo "  ct install <paket>   - Installiert und startet Paket"
-    echo "  ct create            - Erstellt & lädt neues Paket hoch"
-    echo "  ct delsystem         - Löscht CT-System"
-    ;;
-esac
+# Testen ob der Befehl funktioniert
+if command -v ct &> /dev/null; then
+  echo "✅ CT-System erfolgreich installiert!"
+  echo "👉 Starte mit: ct"
+else
+  echo "⚠️ Etwas stimmt nicht — versuche Termux neu zu starten!"
+fi
